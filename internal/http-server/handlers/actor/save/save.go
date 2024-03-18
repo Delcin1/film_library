@@ -1,7 +1,7 @@
 package save
 
 import (
-	resp "film_library/internal/lib/api/response"
+	"film_library/internal/lib/api/response"
 	"film_library/internal/lib/logger/sl"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -17,7 +17,7 @@ type Request struct {
 }
 
 type Response struct {
-	resp.Response
+	response.Response
 	ActorId int `json:"actor_id"`
 }
 
@@ -26,6 +26,19 @@ type ActorSaver interface {
 	SaveActor(name string, gender string, birthdate string) (int, error)
 }
 
+// @Summary		Create a new actor
+// @Description	Create a new actor by name, gender and birthdate
+// @Tags			Actor
+// @Accept			json
+// @Produce		json
+// @Param			name		body		string	true	"Name"
+// @Param			name		body		string	true	"Gender"
+// @Param			birthdate	body		string	true	"Birthdate"
+// @Success		200			{object}	Response
+// @Failure		400			{object}	response.Response
+// @Failure		401			{object}	response.Response
+// @Failure		403			{object}	response.Response
+// @Router			/actor/save [post]
 func New(log *slog.Logger, actorSaver ActorSaver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.actor.save.New"
@@ -41,7 +54,7 @@ func New(log *slog.Logger, actorSaver ActorSaver) http.HandlerFunc {
 		if err != nil {
 			log.Error("failed to decode request", sl.Err(err))
 
-			render.JSON(w, r, resp.Error("failed to decode request"))
+			render.JSON(w, r, response.Error("failed to decode request"))
 
 			return
 		}
@@ -51,7 +64,7 @@ func New(log *slog.Logger, actorSaver ActorSaver) http.HandlerFunc {
 		if ok, field, msg := validateRequest(req); !ok {
 			log.Error("invalid request", field)
 
-			render.JSON(w, r, resp.Error(msg))
+			render.JSON(w, r, response.Error(msg))
 
 			return
 		}
@@ -60,7 +73,7 @@ func New(log *slog.Logger, actorSaver ActorSaver) http.HandlerFunc {
 		if err != nil {
 			log.Error("failed to save actor", sl.Err(err))
 
-			render.JSON(w, r, resp.Error("failed to save actor"))
+			render.JSON(w, r, response.Error("failed to save actor"))
 
 			return
 		}
@@ -68,7 +81,7 @@ func New(log *slog.Logger, actorSaver ActorSaver) http.HandlerFunc {
 		log.Info("actor saved", slog.Int("actor_id", actorId))
 
 		render.JSON(w, r, Response{
-			resp.OK(),
+			response.OK(),
 			actorId,
 		})
 	}

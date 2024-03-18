@@ -1,7 +1,7 @@
 package save
 
 import (
-	resp "film_library/internal/lib/api/response"
+	"film_library/internal/lib/api/response"
 	"film_library/internal/lib/logger/sl"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -15,7 +15,7 @@ type Request struct {
 }
 
 type Response struct {
-	resp.Response
+	response.Response
 }
 
 //go:generate go run github.com/vektra/mockery/v2@v2.42.1 --name=ActorMovieSaver
@@ -23,6 +23,18 @@ type ActorMovieSaver interface {
 	SaveActorMovie(movieId int, actorsIds []int) error
 }
 
+// @Summary		Add actors to movie
+// @Description	Add actors to movie by movie_id and actors_ids
+// @Tags			Actor-Movie
+// @Accept			json
+// @Produce		json
+// @Param			movie_id	path		int		true	"Movie ID"
+// @Param			actors_ids	path		[]int	true	"Actors IDs"
+// @Success		200			{object}	Response
+// @Failure		400			{object}	response.Response
+// @Failure		401			{object}	response.Response
+// @Failure		403			{object}	response.Response
+// @Router			/actor-movie/save [post]
 func New(log *slog.Logger, actorMovieSaver ActorMovieSaver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.actor-movie.save.New"
@@ -38,7 +50,7 @@ func New(log *slog.Logger, actorMovieSaver ActorMovieSaver) http.HandlerFunc {
 		if err != nil {
 			log.Error("failed to decode request", sl.Err(err))
 
-			render.JSON(w, r, resp.Error("failed to decode request"))
+			render.JSON(w, r, response.Error("failed to decode request"))
 
 			return
 		}
@@ -48,7 +60,7 @@ func New(log *slog.Logger, actorMovieSaver ActorMovieSaver) http.HandlerFunc {
 		if ok, field, msg := validateRequest(req); !ok {
 			log.Error("invalid request", field)
 
-			render.JSON(w, r, resp.Error(msg))
+			render.JSON(w, r, response.Error(msg))
 
 			return
 		}
@@ -57,14 +69,14 @@ func New(log *slog.Logger, actorMovieSaver ActorMovieSaver) http.HandlerFunc {
 		if err != nil {
 			log.Error("failed to save actor-movie", sl.Err(err))
 
-			render.JSON(w, r, resp.Error("failed to save actor-movie"))
+			render.JSON(w, r, response.Error("failed to save actor-movie"))
 
 			return
 		}
 
 		log.Info("actors added to movie", slog.Int("movie_id", req.MovieId))
 
-		render.JSON(w, r, Response{resp.OK()})
+		render.JSON(w, r, Response{response.OK()})
 	}
 }
 

@@ -1,7 +1,7 @@
 package save
 
 import (
-	resp "film_library/internal/lib/api/response"
+	"film_library/internal/lib/api/response"
 	"film_library/internal/lib/logger/sl"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -19,7 +19,7 @@ type Request struct {
 }
 
 type Response struct {
-	resp.Response
+	response.Response
 	MovieId int `json:"movie_id"`
 }
 
@@ -28,6 +28,21 @@ type MovieSaver interface {
 	SaveMovie(title string, description string, releaseDate string, rating int, actorsIds []int) (int, error)
 }
 
+// @Summary		Save movie
+// @Description	Save movie by title, description, release_date, rating and actors_ids
+// @Tags			Movie
+// @Accept			json
+// @Produce		json
+// @Param			title			path		string	true	"Title"
+// @Param			description		path		string	true	"Description"
+// @Param			release_date	path		string	true	"Release Date"
+// @Param			rating			path		int		true	"Rating"
+// @Param			actors_ids		path		[]int	true	"Actors IDs"
+// @Success		200				{object}	Response
+// @Failure		400				{object}	response.Response
+// @Failure		401				{object}	response.Response
+// @Failure		403				{object}	response.Response
+// @Router			/movie/save [post]
 func New(log *slog.Logger, movieSaver MovieSaver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.movie.save.New"
@@ -43,7 +58,7 @@ func New(log *slog.Logger, movieSaver MovieSaver) http.HandlerFunc {
 		if err != nil {
 			log.Error("failed to decode request", sl.Err(err))
 
-			render.JSON(w, r, resp.Error("failed to decode request"))
+			render.JSON(w, r, response.Error("failed to decode request"))
 
 			return
 		}
@@ -53,7 +68,7 @@ func New(log *slog.Logger, movieSaver MovieSaver) http.HandlerFunc {
 		if ok, field, msg := validateRequest(req); !ok {
 			log.Error("invalid request", field)
 
-			render.JSON(w, r, resp.Error(msg))
+			render.JSON(w, r, response.Error(msg))
 
 			return
 		}
@@ -62,7 +77,7 @@ func New(log *slog.Logger, movieSaver MovieSaver) http.HandlerFunc {
 		if err != nil {
 			log.Error("failed to save movie", sl.Err(err))
 
-			render.JSON(w, r, resp.Error("failed to save movie"))
+			render.JSON(w, r, response.Error("failed to save movie"))
 
 			return
 		}
@@ -70,7 +85,7 @@ func New(log *slog.Logger, movieSaver MovieSaver) http.HandlerFunc {
 		log.Info("movie saved", slog.Int("movie_id", movieId))
 
 		render.JSON(w, r, Response{
-			resp.OK(),
+			response.OK(),
 			movieId,
 		})
 	}

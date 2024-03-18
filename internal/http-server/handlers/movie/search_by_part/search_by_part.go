@@ -1,7 +1,7 @@
 package search_by_part
 
 import (
-	resp "film_library/internal/lib/api/response"
+	"film_library/internal/lib/api/response"
 	"film_library/internal/lib/logger/sl"
 	"film_library/internal/storage/postgres"
 	"github.com/go-chi/chi/v5/middleware"
@@ -15,7 +15,7 @@ type Request struct {
 }
 
 type Response struct {
-	resp.Response
+	response.Response
 	Movies []postgres.Movie `json:"movies"`
 }
 
@@ -24,6 +24,16 @@ type MovieSearcherByPart interface {
 	GetMoviesBySearchRequest(searchRequest string) ([]postgres.Movie, error)
 }
 
+// @Summary		Search a movie by part
+// @Description	Search a movie by part
+// @Tags			Movie
+// @Accept			json
+// @Produce		json
+// @Param			part	query		string	true	"Part"
+// @Success		200		{object}	Response
+// @Failure		400		{object}	response.Response
+// @Failure		401		{object}	response.Response
+// @Router			/movie/search_by_part [get]
 func New(log *slog.Logger, movieSearcher MovieSearcherByPart) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.movie.search_by_part.New"
@@ -39,7 +49,7 @@ func New(log *slog.Logger, movieSearcher MovieSearcherByPart) http.HandlerFunc {
 		if err != nil {
 			log.Error("failed to decode request", sl.Err(err))
 
-			render.JSON(w, r, resp.Error("failed to decode request"))
+			render.JSON(w, r, response.Error("failed to decode request"))
 
 			return
 		}
@@ -50,7 +60,7 @@ func New(log *slog.Logger, movieSearcher MovieSearcherByPart) http.HandlerFunc {
 		if err != nil {
 			log.Error("movies search failed", sl.Err(err))
 
-			render.JSON(w, r, resp.Error("movies search failed"))
+			render.JSON(w, r, response.Error("movies search failed"))
 
 			return
 		}
@@ -58,7 +68,7 @@ func New(log *slog.Logger, movieSearcher MovieSearcherByPart) http.HandlerFunc {
 		log.Info("movies found", slog.Int("movie_count", len(movies)))
 
 		render.JSON(w, r, Response{
-			resp.OK(),
+			response.OK(),
 			movies,
 		})
 	}

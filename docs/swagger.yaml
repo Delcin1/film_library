@@ -1,0 +1,725 @@
+definitions:
+  internal_http-server_handlers_actor-movie_delete.Response:
+    properties:
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  internal_http-server_handlers_actor-movie_save.Response:
+    properties:
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  internal_http-server_handlers_actor_all.Response:
+    properties:
+      actors:
+        items:
+          $ref: '#/definitions/postgres.Actor'
+        type: array
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  internal_http-server_handlers_actor_delete.Response:
+    properties:
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  internal_http-server_handlers_actor_save.Response:
+    properties:
+      actor_id:
+        type: integer
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  internal_http-server_handlers_actor_update.Response:
+    properties:
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  internal_http-server_handlers_movie_all.Response:
+    properties:
+      error:
+        type: string
+      movies:
+        items:
+          $ref: '#/definitions/postgres.Movie'
+        type: array
+      status:
+        type: string
+    type: object
+  internal_http-server_handlers_movie_delete.Response:
+    properties:
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  internal_http-server_handlers_movie_save.Response:
+    properties:
+      error:
+        type: string
+      movie_id:
+        type: integer
+      status:
+        type: string
+    type: object
+  internal_http-server_handlers_movie_update.Response:
+    properties:
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  postgres.Actor:
+    properties:
+      actor_id:
+        type: integer
+      birthdate:
+        type: string
+      gender:
+        type: string
+      movies:
+        items:
+          type: integer
+        type: array
+      name:
+        type: string
+    type: object
+  postgres.Movie:
+    properties:
+      actors:
+        items:
+          type: integer
+        type: array
+      description:
+        type: string
+      movie_id:
+        type: integer
+      rating:
+        type: integer
+      release_date:
+        type: string
+      title:
+        type: string
+    type: object
+  response.Response:
+    properties:
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  search.Response:
+    properties:
+      actor:
+        $ref: '#/definitions/postgres.Actor'
+      error:
+        type: string
+      status:
+        type: string
+    type: object
+  search_by_id.Response:
+    properties:
+      error:
+        type: string
+      movie:
+        $ref: '#/definitions/postgres.Movie'
+      status:
+        type: string
+    type: object
+  search_by_part.Response:
+    properties:
+      error:
+        type: string
+      movies:
+        items:
+          $ref: '#/definitions/postgres.Movie'
+        type: array
+      status:
+        type: string
+    type: object
+  signin.Response:
+    properties:
+      error:
+        type: string
+      status:
+        type: string
+      token:
+        type: string
+    type: object
+info:
+  contact:
+    email: naklz9@mail.ru
+    name: Nikita Zhirnov
+    url: https://t.me/belkindelcin
+  description: API for VK contest
+  termsOfService: http://swagger.io/terms/
+  title: Film Library API
+  version: "1.0"
+paths:
+  /actor-movie/delete:
+    delete:
+      consumes:
+      - application/json
+      description: Delete actors from movie by movie_id and actors_ids
+      parameters:
+      - description: Movie ID
+        in: path
+        name: movie_id
+        required: true
+        type: integer
+      - collectionFormat: csv
+        description: Actors IDs
+        in: path
+        items:
+          type: integer
+        name: actors_ids
+        required: true
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_http-server_handlers_actor-movie_delete.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Delete actors from movie
+      tags:
+      - Actor-Movie
+  /actor-movie/save:
+    post:
+      consumes:
+      - application/json
+      description: Add actors to movie by movie_id and actors_ids
+      parameters:
+      - description: Movie ID
+        in: path
+        name: movie_id
+        required: true
+        type: integer
+      - collectionFormat: csv
+        description: Actors IDs
+        in: path
+        items:
+          type: integer
+        name: actors_ids
+        required: true
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_http-server_handlers_actor-movie_save.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Add actors to movie
+      tags:
+      - Actor-Movie
+  /actor/all:
+    get:
+      consumes:
+      - application/json
+      description: Get all actors
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_http-server_handlers_actor_all.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Get all actors
+      tags:
+      - Actor
+  /actor/delete:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an actor by actor_id
+      parameters:
+      - description: Actor ID
+        in: path
+        name: actor_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_http-server_handlers_actor_delete.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Delete an actor
+      tags:
+      - Actor
+  /actor/save:
+    post:
+      consumes:
+      - application/json
+      description: Create a new actor by name, gender and birthdate
+      parameters:
+      - description: Name
+        in: body
+        name: name
+        required: true
+        schema:
+          type: string
+      - description: Gender
+        in: body
+        name: name
+        required: true
+        schema:
+          type: string
+      - description: Birthdate
+        in: body
+        name: birthdate
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_http-server_handlers_actor_save.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Create a new actor
+      tags:
+      - Actor
+  /actor/search:
+    get:
+      consumes:
+      - application/json
+      description: Get an actor by actor_id
+      parameters:
+      - description: Actor ID
+        in: path
+        name: actor_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/search.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Get an actor
+      tags:
+      - Actor
+  /actor/update:
+    post:
+      consumes:
+      - application/json
+      description: Update an actor by actor_id
+      parameters:
+      - description: Actor ID
+        in: path
+        name: actor_id
+        required: true
+        type: integer
+      - description: Name
+        in: body
+        name: name
+        schema:
+          type: string
+      - description: Gender
+        in: body
+        name: gender
+        schema:
+          type: string
+      - description: Birthdate
+        in: body
+        name: birthdate
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_http-server_handlers_actor_update.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Update an actor
+      tags:
+      - Actor
+  /movie/all:
+    get:
+      consumes:
+      - application/json
+      description: Get all movies
+      parameters:
+      - description: Sort by
+        in: query
+        name: sort_by
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_http-server_handlers_movie_all.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Get all movies
+      tags:
+      - Movie
+  /movie/delete:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a movie by movie_id
+      parameters:
+      - description: Movie ID
+        in: path
+        name: movie_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_http-server_handlers_movie_delete.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Delete a movie
+      tags:
+      - Movie
+  /movie/save:
+    post:
+      consumes:
+      - application/json
+      description: Save movie by title, description, release_date, rating and actors_ids
+      parameters:
+      - description: Title
+        in: path
+        name: title
+        required: true
+        type: string
+      - description: Description
+        in: path
+        name: description
+        required: true
+        type: string
+      - description: Release Date
+        in: path
+        name: release_date
+        required: true
+        type: string
+      - description: Rating
+        in: path
+        name: rating
+        required: true
+        type: integer
+      - collectionFormat: csv
+        description: Actors IDs
+        in: path
+        items:
+          type: integer
+        name: actors_ids
+        required: true
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_http-server_handlers_movie_save.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Save movie
+      tags:
+      - Movie
+  /movie/search_by_id:
+    get:
+      consumes:
+      - application/json
+      description: Search a movie by movie_id
+      parameters:
+      - description: Movie ID
+        in: path
+        name: movie_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/search_by_id.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Search a movie by movie_id
+      tags:
+      - Movie
+  /movie/search_by_part:
+    get:
+      consumes:
+      - application/json
+      description: Search a movie by part
+      parameters:
+      - description: Part
+        in: query
+        name: part
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/search_by_part.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Search a movie by part
+      tags:
+      - Movie
+  /movie/update:
+    post:
+      consumes:
+      - application/json
+      description: Update movie by movie_id
+      parameters:
+      - description: Movie ID
+        in: path
+        name: movie_id
+        required: true
+        type: integer
+      - description: Title
+        in: body
+        name: title
+        schema:
+          type: string
+      - description: Description
+        in: body
+        name: description
+        schema:
+          type: string
+      - description: Release Date
+        in: body
+        name: release_date
+        schema:
+          type: string
+      - description: Rating
+        in: body
+        name: rating
+        schema:
+          type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_http-server_handlers_movie_update.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Update movie
+      tags:
+      - Movie
+  /signin:
+    post:
+      consumes:
+      - application/json
+      description: Sign in a user by username and password
+      parameters:
+      - description: Username
+        in: body
+        name: username
+        required: true
+        schema:
+          type: string
+      - description: Password
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/signin.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Sign in a user
+      tags:
+      - User
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user by username and password
+      parameters:
+      - description: Username
+        in: body
+        name: username
+        required: true
+        schema:
+          type: string
+      - description: Password
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Create a new user
+      tags:
+      - User
+swagger: "2.0"

@@ -1,7 +1,7 @@
 package update
 
 import (
-	resp "film_library/internal/lib/api/response"
+	"film_library/internal/lib/api/response"
 	"film_library/internal/lib/logger/sl"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -19,7 +19,7 @@ type Request struct {
 }
 
 type Response struct {
-	resp.Response
+	response.Response
 }
 
 //go:generate go run github.com/vektra/mockery/v2@v2.42.1 --name=MovieUpdater
@@ -30,6 +30,21 @@ type MovieUpdater interface {
 	UpdateMovieRating(movieId int, rating int) error
 }
 
+// @Summary		Update movie
+// @Description	Update movie by movie_id
+// @Tags			Movie
+// @Accept			json
+// @Produce		json
+// @Param			movie_id		path		int		true	"Movie ID"
+// @Param			title			body		string	false	"Title"
+// @Param			description		body		string	false	"Description"
+// @Param			release_date	body		string	false	"Release Date"
+// @Param			rating			body		int		false	"Rating"
+// @Success		200				{object}	Response
+// @Failure		400				{object}	response.Response
+// @Failure		401				{object}	response.Response
+// @Failure		403				{object}	response.Response
+// @Router			/movie/update [post]
 func New(log *slog.Logger, movieSaver MovieUpdater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.movie.update.New"
@@ -45,7 +60,7 @@ func New(log *slog.Logger, movieSaver MovieUpdater) http.HandlerFunc {
 		if err != nil {
 			log.Error("failed to decode request", sl.Err(err))
 
-			render.JSON(w, r, resp.Error("failed to decode request"))
+			render.JSON(w, r, response.Error("failed to decode request"))
 
 			return
 		}
@@ -55,7 +70,7 @@ func New(log *slog.Logger, movieSaver MovieUpdater) http.HandlerFunc {
 		if ok, field, msg := validateRequest(req); !ok {
 			log.Error("invalid request", field)
 
-			render.JSON(w, r, resp.Error(msg))
+			render.JSON(w, r, response.Error(msg))
 
 			return
 		}
@@ -65,7 +80,7 @@ func New(log *slog.Logger, movieSaver MovieUpdater) http.HandlerFunc {
 			if err != nil {
 				log.Error("failed to update movie title", sl.Err(err))
 
-				render.JSON(w, r, resp.Error("failed to update movie title"))
+				render.JSON(w, r, response.Error("failed to update movie title"))
 
 				return
 			}
@@ -76,7 +91,7 @@ func New(log *slog.Logger, movieSaver MovieUpdater) http.HandlerFunc {
 			if err != nil {
 				log.Error("failed to update movie description", sl.Err(err))
 
-				render.JSON(w, r, resp.Error("failed to update movie description"))
+				render.JSON(w, r, response.Error("failed to update movie description"))
 
 				return
 			}
@@ -87,7 +102,7 @@ func New(log *slog.Logger, movieSaver MovieUpdater) http.HandlerFunc {
 			if err != nil {
 				log.Error("failed to update movie release date", sl.Err(err))
 
-				render.JSON(w, r, resp.Error("failed to update movie release date"))
+				render.JSON(w, r, response.Error("failed to update movie release date"))
 
 				return
 			}
@@ -98,7 +113,7 @@ func New(log *slog.Logger, movieSaver MovieUpdater) http.HandlerFunc {
 			if err != nil {
 				log.Error("failed to update movie rating", sl.Err(err))
 
-				render.JSON(w, r, resp.Error("failed to update movie rating"))
+				render.JSON(w, r, response.Error("failed to update movie rating"))
 
 				return
 			}
@@ -107,14 +122,14 @@ func New(log *slog.Logger, movieSaver MovieUpdater) http.HandlerFunc {
 		if req.Title == nil && req.Description == nil && req.ReleaseDate == nil && req.Rating == nil {
 			log.Error("no fields to update")
 
-			render.JSON(w, r, resp.Error("no fields to update"))
+			render.JSON(w, r, response.Error("no fields to update"))
 
 			return
 		}
 
 		log.Info("movie updated", slog.Int("movie_id", req.MovieId))
 
-		render.JSON(w, r, Response{resp.OK()})
+		render.JSON(w, r, Response{response.OK()})
 	}
 }
 

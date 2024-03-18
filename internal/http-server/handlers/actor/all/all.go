@@ -1,7 +1,7 @@
 package all
 
 import (
-	resp "film_library/internal/lib/api/response"
+	"film_library/internal/lib/api/response"
 	"film_library/internal/lib/logger/sl"
 	"film_library/internal/storage/postgres"
 	"github.com/go-chi/chi/v5/middleware"
@@ -11,7 +11,7 @@ import (
 )
 
 type Response struct {
-	resp.Response
+	response.Response
 	Movies []postgres.Actor `json:"actors"`
 }
 
@@ -20,6 +20,15 @@ type ActorsAllGetter interface {
 	GetActors() ([]postgres.Actor, error)
 }
 
+//	@Summary		Get all actors
+//	@Description	Get all actors
+//	@Tags			Actor
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	Response
+//	@Failure		400	{object}	response.Response
+//	@Failure		401	{object}	response.Response
+//	@Router			/actor/all [get]
 func New(log *slog.Logger, actorsAllGetter ActorsAllGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.actor.all.New"
@@ -33,7 +42,7 @@ func New(log *slog.Logger, actorsAllGetter ActorsAllGetter) http.HandlerFunc {
 		if err != nil {
 			log.Error("actors search failed", sl.Err(err))
 
-			render.JSON(w, r, resp.Error("actors search failed"))
+			render.JSON(w, r, response.Error("actors search failed"))
 
 			return
 		}
@@ -41,7 +50,7 @@ func New(log *slog.Logger, actorsAllGetter ActorsAllGetter) http.HandlerFunc {
 		log.Info("actors found", slog.Int("actors_count", len(actors)))
 
 		render.JSON(w, r, Response{
-			resp.OK(),
+			response.OK(),
 			actors,
 		})
 	}

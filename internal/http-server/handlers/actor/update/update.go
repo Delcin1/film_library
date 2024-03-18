@@ -1,7 +1,7 @@
 package update
 
 import (
-	resp "film_library/internal/lib/api/response"
+	"film_library/internal/lib/api/response"
 	"film_library/internal/lib/logger/sl"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -18,7 +18,7 @@ type Request struct {
 }
 
 type Response struct {
-	resp.Response
+	response.Response
 }
 
 //go:generate go run github.com/vektra/mockery/v2@v2.42.1 --name=ActorUpdater
@@ -28,6 +28,20 @@ type ActorUpdater interface {
 	UpdateActorBirthdate(actorId int, birthdate string) error
 }
 
+//	@Summary		Update an actor
+//	@Description	Update an actor by actor_id
+//	@Tags			Actor
+//	@Accept			json
+//	@Produce		json
+//	@Param			actor_id	path		int		true	"Actor ID"
+//	@Param			name		body		string	false	"Name"
+//	@Param			gender		body		string	false	"Gender"
+//	@Param			birthdate	body		string	false	"Birthdate"
+//	@Success		200			{object}	Response
+//	@Failure		400			{object}	response.Response
+//	@Failure		401			{object}	response.Response
+//	@Failure		403			{object}	response.Response
+//	@Router			/actor/update [post]
 func New(log *slog.Logger, actorSaver ActorUpdater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.actor.update.New"
@@ -43,7 +57,7 @@ func New(log *slog.Logger, actorSaver ActorUpdater) http.HandlerFunc {
 		if err != nil {
 			log.Error("failed to decode request", sl.Err(err))
 
-			render.JSON(w, r, resp.Error("failed to decode request"))
+			render.JSON(w, r, response.Error("failed to decode request"))
 
 			return
 		}
@@ -53,7 +67,7 @@ func New(log *slog.Logger, actorSaver ActorUpdater) http.HandlerFunc {
 		if ok, field, msg := validateRequest(req); !ok {
 			log.Error("invalid request", field)
 
-			render.JSON(w, r, resp.Error(msg))
+			render.JSON(w, r, response.Error(msg))
 
 			return
 		}
@@ -63,7 +77,7 @@ func New(log *slog.Logger, actorSaver ActorUpdater) http.HandlerFunc {
 			if err != nil {
 				log.Error("failed to update actor name", sl.Err(err))
 
-				render.JSON(w, r, resp.Error("failed to update actor name"))
+				render.JSON(w, r, response.Error("failed to update actor name"))
 
 				return
 			}
@@ -74,7 +88,7 @@ func New(log *slog.Logger, actorSaver ActorUpdater) http.HandlerFunc {
 			if err != nil {
 				log.Error("failed to update actor gender", sl.Err(err))
 
-				render.JSON(w, r, resp.Error("failed to update actor gender"))
+				render.JSON(w, r, response.Error("failed to update actor gender"))
 
 				return
 			}
@@ -85,7 +99,7 @@ func New(log *slog.Logger, actorSaver ActorUpdater) http.HandlerFunc {
 			if err != nil {
 				log.Error("failed to update actor birthdate", sl.Err(err))
 
-				render.JSON(w, r, resp.Error("failed to update actor birthdate"))
+				render.JSON(w, r, response.Error("failed to update actor birthdate"))
 
 				return
 			}
@@ -94,14 +108,14 @@ func New(log *slog.Logger, actorSaver ActorUpdater) http.HandlerFunc {
 		if req.Name == nil && req.Gender == nil && req.Birthdate == nil {
 			log.Error("no fields to update")
 
-			render.JSON(w, r, resp.Error("no fields to update"))
+			render.JSON(w, r, response.Error("no fields to update"))
 
 			return
 		}
 
 		log.Info("actor updated", slog.Int("actor_id", req.ActorId))
 
-		render.JSON(w, r, Response{resp.OK()})
+		render.JSON(w, r, Response{response.OK()})
 	}
 }
 
