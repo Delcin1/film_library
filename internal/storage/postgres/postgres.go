@@ -11,20 +11,20 @@ type Storage struct {
 }
 
 type Movie struct {
-	Id          int
-	Title       string
-	Description string
-	ReleaseDate string
-	Rating      int
-	Actors      []Actor
+	Id          int    `json:"movie_id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	ReleaseDate string `json:"release_date"`
+	Rating      int    `json:"rating"`
+	Actors      []int  `json:"actors"`
 }
 
 type Actor struct {
-	Id        int
-	Name      string
-	Gender    string
-	Birthdate string
-	Movies    []Movie
+	Id        int    `json:"actor_id"`
+	Name      string `json:"name"`
+	Gender    string `json:"gender"`
+	Birthdate string `json:"birthdate"`
+	Movies    []int  `json:"movies"`
 }
 
 const (
@@ -94,30 +94,41 @@ func New(dbUrl string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) SaveActor(name string, gender string, birthdate string) error {
+func (s *Storage) SaveActor(name string, gender string, birthdate string) (int, error) {
 	const op = "storage.postgres.SaveActor"
 
-	_, err := s.db.Exec("INSERT INTO actors(name, gender, birthdate) VALUES ($1, $2, $3)", name, gender, birthdate)
+	var actorId int
+	err := s.db.QueryRow("INSERT INTO actors(name, gender, birthdate) VALUES ($1, $2, $3) RETURNING actor_id",
+		name, gender, birthdate).Scan(&actorId)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return -1, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	return actorId, nil
 }
 
-func (s *Storage) SaveMovie(title string, description string, releaseDate string, rating int, actorsIds []int) error {
+func (s *Storage) SaveMovie(title string, description string, releaseDate string, rating int, actorsIds []int) (int, error) {
 	const op = "storage.postgres.SaveMovie"
 
-	rows, err := s.db.Exec("INSERT INTO movies(title, description, release_date, rating) VALUES ($1, $2, $3, $4)", title, description, releaseDate, rating)
+	var movieId int
+	err := s.db.QueryRow("INSERT INTO movies(title, description, release_date, rating) VALUES ($1, $2, $3, $4) RETURNING movie_id",
+		title, description, releaseDate, rating).Scan(&movieId)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return -1, fmt.Errorf("%s: %w", op, err)
 	}
 
-	movieId, err := rows.LastInsertId()
-	return s.SaveActorMovie(movieId, actorsIds)
+	err = s.SaveActorMovie(movieId, actorsIds)
+	if err != nil {
+		if s.DeleteMovie(movieId) != nil {
+			return -1, fmt.Errorf("%s: %w", op, err)
+		}
+		return -1, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return movieId, nil
 }
 
-func (s *Storage) SaveActorMovie(movieId int64, actorsIds []int) error {
+func (s *Storage) SaveActorMovie(movieId int, actorsIds []int) error {
 	const op = "storage.postgres.SaveActorMovie"
 
 	stmt, err := s.db.Prepare("INSERT INTO actor_movie(movie_id, actor_id) VALUES ($1, $2)")
@@ -130,6 +141,11 @@ func (s *Storage) SaveActorMovie(movieId int64, actorsIds []int) error {
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}
+	}
+
+	err = stmt.Close()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
@@ -215,12 +231,11 @@ func (s *Storage) UpdateMovieRating(movieId int, rating int) error {
 func (s *Storage) DeleteActor(actorId int) error {
 	const op = "storage.postgres.DeleteActor"
 
-	_, err := s.db.Exec("DELETE FROM actors WHERE actor_id=$1", actorId)
+	_, err := s.db.Exec("DELETE FROM actor_movie WHERE actor_id=$1", actorId)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-
-	_, err = s.db.Exec("DELETE FROM actor_movie WHERE actor_id=$1", actorId)
+	_, err = s.db.Exec("DELETE FROM actors WHERE actor_id=$1", actorId)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -231,12 +246,12 @@ func (s *Storage) DeleteActor(actorId int) error {
 func (s *Storage) DeleteMovie(movieId int) error {
 	const op = "storage.postgres.DeleteMovie"
 
-	_, err := s.db.Exec("DELETE FROM movies WHERE movie_id=$1", movieId)
+	_, err := s.db.Exec("DELETE FROM actor_movie WHERE movie_id=$1", movieId)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	_, err = s.db.Exec("DELETE FROM actor_movie WHERE movie_id=$1", movieId)
+	_, err = s.db.Exec("DELETE FROM movies WHERE movie_id=$1", movieId)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -259,13 +274,7 @@ func (s *Storage) DeleteActorMovie(movieId int, actorsIds []int) error {
 		}
 	}
 
-	return nil
-}
-
-func (s *Storage) DeleteActorName(actorId int) error {
-	const op = "storage.postgres.DeleteActorName"
-
-	_, err := s.db.Exec("UPDATE actors SET name=NULL WHERE actor_id=$1", actorId)
+	err = stmt.Close()
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -273,111 +282,85 @@ func (s *Storage) DeleteActorName(actorId int) error {
 	return nil
 }
 
-func (s *Storage) DeleteActorGender(actorId int) error {
-	const op = "storage.postgres.DeleteActorGender"
+func (s *Storage) GetActor(actorId int) (Actor, error) {
+	const op = "storage.postgres.GetActor"
 
-	_, err := s.db.Exec("UPDATE actors SET gender=NULL WHERE actor_id=$1", actorId)
+	var actor Actor
+	err := s.db.QueryRow(`SELECT actor_id, name, gender, to_char(birthdate, 'YYYY-MM-DD') 
+								FROM actors WHERE actor_id=$1`, actorId).
+		Scan(&actor.Id, &actor.Name, &actor.Gender, &actor.Birthdate)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return Actor{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	movies, err := s.GetMoviesByActor(actorId)
+	if err != nil {
+		return Actor{}, fmt.Errorf("%s: %w", op, err)
+	}
+	actor.Movies = movies
+
+	return actor, nil
 }
 
-func (s *Storage) DeleteActorBirthdate(actorId int) error {
-	const op = "storage.postgres.DeleteActorBirthdate"
+func (s *Storage) GetMovie(movieId int) (Movie, error) {
+	const op = "storage.postgres.GetMovie"
 
-	_, err := s.db.Exec("UPDATE actors SET birthdate=NULL WHERE actor_id=$1", actorId)
+	var movie Movie
+	err := s.db.QueryRow(`SELECT movie_id, title, description, to_char(release_date, 'YYYY-MM-DD'), rating
+								FROM movies WHERE movie_id=$1`, movieId).
+		Scan(&movie.Id, &movie.Title, &movie.Description, &movie.ReleaseDate, &movie.Rating)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return Movie{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
-}
-
-func (s *Storage) DeleteMovieTitle(movieId int) error {
-	const op = "storage.postgres.DeleteMovieTitle"
-
-	_, err := s.db.Exec("UPDATE movies SET title=NULL WHERE movie_id=$1", movieId)
+	actors, err := s.GetActorsByMovie(movieId)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return Movie{}, fmt.Errorf("%s: %w", op, err)
 	}
+	movie.Actors = actors
 
-	return nil
+	return movie, nil
 }
 
-func (s *Storage) DeleteMovieDescription(movieId int) error {
-	const op = "storage.postgres.DeleteMovieDescription"
-
-	_, err := s.db.Exec("UPDATE movies SET description=NULL WHERE movie_id=$1", movieId)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	return nil
-}
-
-func (s *Storage) DeleteMovieReleaseDate(movieId int) error {
-	const op = "storage.postgres.DeleteMovieReleaseDate"
-
-	_, err := s.db.Exec("UPDATE movies SET release_date=NULL WHERE movie_id=$1", movieId)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	return nil
-}
-
-func (s *Storage) DeleteMovieRating(movieId int) error {
-	const op = "storage.postgres.DeleteMovieRating"
-
-	_, err := s.db.Exec("UPDATE movies SET rating=NULL WHERE movie_id=$1", movieId)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	return nil
-}
-
-func (s *Storage) GetActorsByMovie(movieId int) ([]Actor, error) {
+func (s *Storage) GetActorsByMovie(movieId int) ([]int, error) {
 	const op = "storage.postgres.GetActorsByMovie"
 
-	rows, err := s.db.Query("SELECT * FROM actors WHERE actor_id IN (SELECT actor_id FROM actor_movie WHERE movie_id=$1)", movieId)
+	rows, err := s.db.Query("SELECT actor_id FROM actor_movie WHERE movie_id=$1", movieId)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var actors []Actor
+	var actors []int
 	for rows.Next() {
-		var actor Actor
-		err = rows.Scan(&actor.Id, &actor.Name, &actor.Gender, &actor.Birthdate)
+		var actorId int
+		err = rows.Scan(&actorId)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 
-		actors = append(actors, actor)
+		actors = append(actors, actorId)
 	}
 
 	return actors, nil
 }
 
-func (s *Storage) GetMoviesByActor(actorId int) ([]Movie, error) {
+func (s *Storage) GetMoviesByActor(actorId int) ([]int, error) {
 	const op = "storage.postgres.GetMoviesByActor"
 
-	rows, err := s.db.Query("SELECT * FROM movies WHERE movie_id IN (SELECT movie_id FROM actor_movie WHERE actor_id=$1)", actorId)
+	rows, err := s.db.Query("SELECT movie_id FROM actor_movie WHERE actor_id=$1", actorId)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var movies []Movie
+	var movies []int
 	for rows.Next() {
-		var movie Movie
-		err = rows.Scan(&movie.Id, &movie.Title, &movie.Description, &movie.ReleaseDate, &movie.Rating)
+		var movieId int
+		err = rows.Scan(&movieId)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 
-		movies = append(movies, movie)
+		movies = append(movies, movieId)
 	}
 
 	return movies, nil
@@ -406,7 +389,11 @@ func (s *Storage) GetMovies(sortBy string) ([]Movie, error) {
 		orderBy = "rating DESC"
 	}
 
-	rows, err := s.db.Query("SELECT * FROM movies ORDER BY $1", orderBy)
+	query := fmt.Sprintf(`SELECT movie_id, title, description, to_char(release_date, 'YYYY-MM-DD') as release_date_f, rating 
+								 FROM movies
+								 ORDER BY %s`, orderBy)
+
+	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -429,12 +416,12 @@ func (s *Storage) GetMovies(sortBy string) ([]Movie, error) {
 	return movies, nil
 }
 
-func (s *Storage) GetActors(sortBy string) ([]Actor, error) {
+func (s *Storage) GetActors() ([]Actor, error) {
 	const op = "storage.postgres.GetActors"
 
 	var actors []Actor
 
-	rows, err := s.db.Query("SELECT * FROM actors")
+	rows, err := s.db.Query("SELECT actor_id, name, gender, to_char(birthdate, 'YYYY-MM-DD') FROM actors")
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -456,16 +443,16 @@ func (s *Storage) GetActors(sortBy string) ([]Actor, error) {
 	return actors, nil
 }
 
-func (s *Storage) GetMovieBySearchRequest(searchRequest string) ([]Movie, error) {
+func (s *Storage) GetMoviesBySearchRequest(searchRequest string) ([]Movie, error) {
 	const op = "storage.postgres.GetMovieBySearchRequest"
 
 	var movies []Movie
 
-	rows, err := s.db.Query(`SELECT DISTINCT m.* 
+	rows, err := s.db.Query(`SELECT DISTINCT m.movie_id, m.title, m.description, to_char(m.release_date, 'YYYY-MM-DD'), m.rating 
 								   FROM movies m 
     							   JOIN actor_movie am ON m.movie_id = am.movie_id 
 								   JOIN actors a ON am.actor_id = a.actor_id
-								   WHERE m.title LIKE $1 or a.name LIKE $1`, searchRequest)
+								   WHERE m.title LIKE $1 or a.name LIKE $1`, "%"+searchRequest+"%")
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
