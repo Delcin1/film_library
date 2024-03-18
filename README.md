@@ -2,7 +2,7 @@
 
 ```go test ./... -coverprofile=coverage.out```
 
-```go tool cover -func=coverage.out```
+```go tool cover -func=coverage.out``` = 54.4% - из-за отсутствия тестов БД
 
 http://localhost:8082/swagger/index.html#/
 
